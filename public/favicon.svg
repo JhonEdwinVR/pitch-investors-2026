@@ -1,0 +1,16 @@
+<!-- Based on Tabler Icons "trending-up" (MIT License) adapted to PITCH INVESTORS neobrutalist palette -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect x="8" y="8" width="52" height="52" fill="#000000" />
+  <rect x="4" y="4" width="52" height="52" fill="#FFDC00" stroke="#000000" stroke-width="5" />
+  <g
+    transform="translate(12, 12) scale(1.5)"
+    fill="none"
+    stroke="#000000"
+    stroke-width="3.2"
+    stroke-linecap="square"
+    stroke-linejoin="miter"
+  >
+    <path d="M3 17l6 -6l4 4l8 -8" />
+    <path d="M14 7l7 0l0 7" />
+  </g>
+</svg>
