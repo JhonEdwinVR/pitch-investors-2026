@@ -1,0 +1,486 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Event ID: 'grade12_pitch_2026'
+    // Collections:
+    //   - test/{docId}: connection healthcheck
+    //   - admins/{adminId}: admin UID registry
+    //   - events/{eventId}: EventConfig (stage, timer, adminPin, etc.)
+    //   - participants/{participantId}: Participant (id, eventId, name, role, projectId, status, ...)
+    //   - participant_secrets/{participantId}: ParticipantSecret
+    //       - id: string (<= 64, == participantId, immutable)
+    //       - eventId: string ('grade12_pitch_2026')
+    //       - pinHash: string (64 lowercase hex chars, SHA-256 of participantId:pin)
+    //       - ownerUid: string (<= 128, Firebase Auth UID)
+    //       - updatedAt: string (<= 64)
+    //   - projects/{projectId}: Project (id, eventId, entrepreneurId, name, category, counters, ...)
+    //   - budgets/{budgetId}: Budget (id, eventId, investorId, balances, ...)
+    //   - investments/{investmentId}: Investment (id, eventId, investorId, projectId, amount, ...)
+    //   - reactions/{reactionId}: Reaction (id, eventId, participantId, projectId, reactionType, active, ...)
+    //   - presentations/{presentationId}: Presentation (id, eventId, projectId, roundNumber, status, ...)
+    //   - admin_logs/{logId}: AdminLog (id, eventId, action, details, actor, createdAt)
+    //
+    // ===============================================================
+
+    // Pillar 1: Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Pillar 3: Primitive Definitions
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return (isSignedIn() && request.auth.token.email == 'jhonedwin0307@gmail.com' && request.auth.token.email_verified == true) ||
+             (isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+    }
+
+    // Participant Secret & Ownership Helpers
+    function hasSecret(participantId) {
+      return isValidId(participantId) &&
+             exists(/databases/$(database)/documents/participant_secrets/$(participantId));
+    }
+
+    function hasSecretAfter(participantId) {
+      return isValidId(participantId) &&
+             existsAfter(/databases/$(database)/documents/participant_secrets/$(participantId));
+    }
+
+    function isParticipantOwner(participantId) {
+      return isAdmin() || (
+        isSignedIn() &&
+        hasSecret(participantId) &&
+        get(/databases/$(database)/documents/participant_secrets/$(participantId)).data.ownerUid == request.auth.uid
+      );
+    }
+
+    function isParticipantOwnerAfter(participantId) {
+      return isAdmin() || (
+        isSignedIn() &&
+        hasSecretAfter(participantId) &&
+        getAfter(/databases/$(database)/documents/participant_secrets/$(participantId)).data.ownerUid == request.auth.uid
+      );
+    }
+
+    // Connection test endpoint for startup validation
+    match /test/{docId} {
+      allow get: if isValidId(docId);
+    }
+
+    // Admins collection
+    match /admins/{adminId} {
+      allow get: if isValidId(adminId) && isAdmin();
+      allow list: if isAdmin() && existing().email == 'jhonedwin0307@gmail.com';
+      allow create, update, delete: if isValidId(adminId) && isAdmin();
+    }
+
+    // Validation Blueprint: EventConfig
+    function isValidEventConfig(data) {
+      return data.keys().hasAll([
+        'id', 'eventId', 'name', 'subtitle', 'stage', 'registrationMode',
+        'visibilityMode', 'entrepreneurCanInvest', 'initialBudgetPerInvestor',
+        'activeProjectId', 'activePresentationId', 'activeRoundNumber',
+        'timerStatus', 'timerDurationSec', 'timerEndsAtMs',
+        'timerRemainingSecWhenPaused', 'adminPin', 'lastNotification', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'id', 'eventId', 'name', 'subtitle', 'stage', 'registrationMode',
+        'visibilityMode', 'entrepreneurCanInvest', 'initialBudgetPerInvestor',
+        'activeProjectId', 'activePresentationId', 'activeRoundNumber',
+        'timerStatus', 'timerDurationSec', 'timerEndsAtMs',
+        'timerRemainingSecWhenPaused', 'adminPin', 'lastNotification', 'updatedAt'
+      ]) &&
+      data.id is string && data.id.size() <= 64 &&
+      data.eventId == 'grade12_pitch_2026' &&
+      data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+      data.subtitle is string && data.subtitle.size() <= 200 &&
+      data.stage in ['registration', 'closed_registration', 'roulette', 'presenting', 'paused', 'finished'] &&
+      data.registrationMode in ['single', 'dual'] &&
+      data.visibilityMode in ['admin_only', 'private_totals', 'public'] &&
+      data.entrepreneurCanInvest is bool &&
+      data.initialBudgetPerInvestor is number && data.initialBudgetPerInvestor >= 1000 && data.initialBudgetPerInvestor <= 10000000 &&
+      data.activeProjectId is string && data.activeProjectId.size() <= 64 &&
+      data.activePresentationId is string && data.activePresentationId.size() <= 64 &&
+      data.activeRoundNumber is number && data.activeRoundNumber >= 0 &&
+      data.timerStatus in ['idle', 'running', 'paused', 'ended'] &&
+      data.timerDurationSec is number && data.timerDurationSec >= 0 && data.timerDurationSec <= 3600 &&
+      data.timerEndsAtMs is number && data.timerEndsAtMs >= 0 &&
+      data.timerRemainingSecWhenPaused is number && data.timerRemainingSecWhenPaused >= 0 &&
+      data.adminPin is string && data.adminPin.size() >= 4 && data.adminPin.size() <= 32 &&
+      data.lastNotification is string && data.lastNotification.size() <= 240 &&
+      data.updatedAt is string && data.updatedAt.size() <= 64;
+    }
+
+    match /events/{eventId} {
+      allow get: if isValidId(eventId);
+      allow list: if existing().eventId == 'grade12_pitch_2026';
+      allow create: if isValidId(eventId) && isValidEventConfig(incoming()) && incoming().id == eventId;
+      allow update: if isValidId(eventId) && isValidEventConfig(incoming()) && incoming().id == existing().id && (
+        isAdmin() ||
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'name', 'subtitle', 'stage', 'registrationMode', 'visibilityMode',
+          'entrepreneurCanInvest', 'initialBudgetPerInvestor', 'activeProjectId',
+          'activePresentationId', 'activeRoundNumber', 'timerStatus',
+          'timerDurationSec', 'timerEndsAtMs', 'timerRemainingSecWhenPaused',
+          'adminPin', 'lastNotification', 'updatedAt'
+        ])
+      );
+      allow delete: if isValidId(eventId) && (isAdmin() || existing().eventId == 'grade12_pitch_2026');
+    }
+
+    // Validation Blueprint: Participant
+    function isValidParticipant(data) {
+      return data.keys().hasAll([
+        'id', 'eventId', 'name', 'normalizedName', 'role',
+        'projectId', 'projectName', 'status', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'id', 'eventId', 'name', 'normalizedName', 'role',
+        'projectId', 'projectName', 'status', 'createdAt', 'updatedAt'
+      ]) &&
+      data.id is string && data.id.size() <= 64 &&
+      data.eventId == 'grade12_pitch_2026' &&
+      data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
+      data.normalizedName is string && data.normalizedName.size() >= 1 && data.normalizedName.size() <= 100 &&
+      data.role in ['entrepreneur', 'investor'] &&
+      data.projectId is string && data.projectId.size() <= 64 &&
+      data.projectName is string && data.projectName.size() <= 120 &&
+      data.status in ['active', 'suspended'] &&
+      data.createdAt is string && data.createdAt.size() <= 64 &&
+      data.updatedAt is string && data.updatedAt.size() <= 64;
+    }
+
+    match /participants/{participantId} {
+      allow get: if isValidId(participantId);
+      allow list: if existing().eventId == 'grade12_pitch_2026';
+      allow create: if isValidId(participantId) && isValidParticipant(incoming()) && incoming().id == participantId;
+      allow update: if isValidId(participantId) && isValidParticipant(incoming()) &&
+        incoming().id == existing().id &&
+        incoming().createdAt == existing().createdAt && (
+          isAdmin() ||
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'name', 'normalizedName', 'role', 'projectId', 'projectName', 'status', 'updatedAt'
+          ])
+        );
+      allow delete: if isValidId(participantId) && (isAdmin() || existing().eventId == 'grade12_pitch_2026');
+    }
+
+    // Validation Blueprint: ParticipantSecret (private PIN hash + session UID)
+    match /participant_secrets/{participantId} {
+      function isValidParticipantSecret(data) {
+        return data.keys().hasAll([
+          'id', 'eventId', 'pinHash', 'ownerUid', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'eventId', 'pinHash', 'ownerUid', 'updatedAt'
+        ]) &&
+        data.id is string && data.id.size() <= 64 && data.id == participantId &&
+        data.eventId == 'grade12_pitch_2026' &&
+        data.pinHash is string && data.pinHash.size() == 64 && data.pinHash.matches('^[a-f0-9]{64}$') &&
+        data.ownerUid is string && data.ownerUid.size() <= 128 &&
+        data.updatedAt is string && data.updatedAt.size() <= 64;
+      }
+
+      allow list: if isAdmin();
+      allow get: if isAdmin() || (isSignedIn() && (resource == null || existing().ownerUid == request.auth.uid));
+      allow create: if isValidId(participantId) && isValidParticipantSecret(incoming()) && incoming().id == participantId && (
+        isAdmin() ||
+        (isSignedIn() && incoming().ownerUid == request.auth.uid)
+      );
+      allow update: if isValidId(participantId) && isValidParticipantSecret(incoming()) && incoming().id == existing().id && (
+        isAdmin() ||
+        (
+          isSignedIn() &&
+          incoming().ownerUid == request.auth.uid &&
+          (existing().ownerUid == request.auth.uid || incoming().pinHash == existing().pinHash)
+        )
+      );
+      allow delete: if isValidId(participantId) && isAdmin();
+    }
+
+    // Validation Blueprint: Project
+    function isValidProject(data) {
+      return data.keys().hasAll([
+        'id', 'eventId', 'code', 'name', 'category', 'entrepreneurId',
+        'entrepreneurName', 'grade', 'status', 'presentationOrder',
+        'assignedDurationSec', 'totalInvested', 'investorCount', 'totalReactions',
+        'fireCount', 'ideaCount', 'clapCount', 'rocketCount', 'heartCount',
+        'targetCount', 'mindblownCount', 'starCount', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'id', 'eventId', 'code', 'name', 'category', 'entrepreneurId',
+        'entrepreneurName', 'grade', 'status', 'presentationOrder',
+        'assignedDurationSec', 'totalInvested', 'investorCount', 'totalReactions',
+        'fireCount', 'ideaCount', 'clapCount', 'rocketCount', 'heartCount',
+        'targetCount', 'mindblownCount', 'starCount', 'createdAt', 'updatedAt'
+      ]) &&
+      data.id is string && data.id.size() <= 64 &&
+      data.eventId == 'grade12_pitch_2026' &&
+      data.code is string && data.code.size() <= 32 &&
+      data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+      data.category is string && data.category.size() <= 160 &&
+      data.entrepreneurId is string && data.entrepreneurId.size() <= 64 &&
+      data.entrepreneurName is string && data.entrepreneurName.size() <= 100 &&
+      data.grade is string && data.grade.size() <= 32 &&
+      data.status in ['pending', 'active', 'presented'] &&
+      data.presentationOrder is number && data.presentationOrder >= 0 &&
+      data.assignedDurationSec is number && data.assignedDurationSec >= 0 && data.assignedDurationSec <= 3600 &&
+      data.totalInvested is number && data.totalInvested >= 0 &&
+      data.investorCount is number && data.investorCount >= 0 &&
+      data.totalReactions is number && data.totalReactions >= 0 &&
+      data.fireCount is number && data.fireCount >= 0 &&
+      data.ideaCount is number && data.ideaCount >= 0 &&
+      data.clapCount is number && data.clapCount >= 0 &&
+      data.rocketCount is number && data.rocketCount >= 0 &&
+      data.heartCount is number && data.heartCount >= 0 &&
+      data.targetCount is number && data.targetCount >= 0 &&
+      data.mindblownCount is number && data.mindblownCount >= 0 &&
+      data.starCount is number && data.starCount >= 0 &&
+      data.createdAt is string && data.createdAt.size() <= 64 &&
+      data.updatedAt is string && data.updatedAt.size() <= 64;
+    }
+
+    match /projects/{projectId} {
+      allow get: if isValidId(projectId);
+      allow list: if existing().eventId == 'grade12_pitch_2026';
+      allow create: if isValidId(projectId) && isValidProject(incoming()) && incoming().id == projectId;
+      allow update: if isValidId(projectId) && isValidProject(incoming()) &&
+        incoming().id == existing().id &&
+        incoming().createdAt == existing().createdAt && (
+          isAdmin() ||
+          (
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'code', 'name', 'category', 'entrepreneurName', 'status',
+              'presentationOrder', 'assignedDurationSec', 'totalInvested',
+              'investorCount', 'totalReactions', 'fireCount', 'ideaCount',
+              'clapCount', 'rocketCount', 'heartCount', 'targetCount',
+              'mindblownCount', 'starCount', 'updatedAt'
+            ]) &&
+            (
+              !incoming().diff(existing()).affectedKeys().hasAny(['name', 'category']) ||
+              !hasSecret(existing().entrepreneurId) ||
+              isParticipantOwner(existing().entrepreneurId)
+            )
+          )
+        );
+      allow delete: if isValidId(projectId) && (isAdmin() || existing().eventId == 'grade12_pitch_2026');
+    }
+
+    // Validation Blueprint: Budget
+    function isValidBudget(data) {
+      return data.keys().hasAll([
+        'id', 'eventId', 'investorId', 'investorName',
+        'initialBudget', 'availableBudget', 'investedBudget',
+        'investmentCount', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'id', 'eventId', 'investorId', 'investorName',
+        'initialBudget', 'availableBudget', 'investedBudget',
+        'investmentCount', 'updatedAt'
+      ]) &&
+      data.id is string && data.id.size() <= 64 &&
+      data.eventId == 'grade12_pitch_2026' &&
+      data.investorId is string && data.investorId.size() <= 64 &&
+      data.investorName is string && data.investorName.size() <= 100 &&
+      data.initialBudget is number && data.initialBudget >= 0 &&
+      data.availableBudget is number && data.availableBudget >= 0 &&
+      data.investedBudget is number && data.investedBudget >= 0 &&
+      data.investmentCount is number && data.investmentCount >= 0 &&
+      data.updatedAt is string && data.updatedAt.size() <= 64;
+    }
+
+    match /budgets/{budgetId} {
+      allow get: if isValidId(budgetId);
+      allow list: if existing().eventId == 'grade12_pitch_2026';
+      allow create: if isValidId(budgetId) && isValidBudget(incoming()) && incoming().id == budgetId &&
+        isValidId(incoming().investorId) && (
+          isAdmin() ||
+          !hasSecretAfter(incoming().investorId) ||
+          isParticipantOwnerAfter(incoming().investorId)
+        );
+      allow update: if isValidId(budgetId) && isValidBudget(incoming()) &&
+        incoming().id == existing().id && (
+          isAdmin() ||
+          (
+            (!hasSecret(existing().investorId) || isParticipantOwner(existing().investorId)) &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'investorName', 'initialBudget', 'availableBudget',
+              'investedBudget', 'investmentCount', 'updatedAt'
+            ])
+          )
+        );
+      allow delete: if isValidId(budgetId) && (isAdmin() || existing().eventId == 'grade12_pitch_2026');
+    }
+
+    // Validation Blueprint: Investment
+    function isValidInvestment(data) {
+      return data.keys().hasAll([
+        'id', 'eventId', 'investorId', 'investorName', 'projectId',
+        'projectName', 'amount', 'roundNumber', 'status',
+        'previousCapital', 'remainingCapital', 'createdAt', 'timeFormatted'
+      ]) &&
+      data.keys().hasOnly([
+        'id', 'eventId', 'investorId', 'investorName', 'projectId',
+        'projectName', 'amount', 'roundNumber', 'status',
+        'previousCapital', 'remainingCapital', 'createdAt', 'timeFormatted'
+      ]) &&
+      data.id is string && data.id.size() <= 64 &&
+      data.eventId == 'grade12_pitch_2026' &&
+      data.investorId is string && data.investorId.size() <= 64 &&
+      data.investorName is string && data.investorName.size() <= 100 &&
+      data.projectId is string && data.projectId.size() <= 64 &&
+      data.projectName is string && data.projectName.size() <= 120 &&
+      data.amount is number && data.amount >= 0 && data.amount <= 10000000 &&
+      data.roundNumber is number && data.roundNumber >= 0 &&
+      data.status in ['confirmed', 'cancelled', 'rejected'] &&
+      data.previousCapital is number && data.previousCapital >= 0 &&
+      data.remainingCapital is number && data.remainingCapital >= 0 &&
+      data.createdAt is string && data.createdAt.size() <= 64 &&
+      data.timeFormatted is string && data.timeFormatted.size() <= 32;
+    }
+
+    match /investments/{investmentId} {
+      allow get: if isValidId(investmentId);
+      allow list: if existing().eventId == 'grade12_pitch_2026';
+      allow create: if isValidId(investmentId) && isValidInvestment(incoming()) && incoming().id == investmentId &&
+        isValidId(incoming().investorId) && (
+          isAdmin() ||
+          !hasSecret(incoming().investorId) ||
+          isParticipantOwner(incoming().investorId)
+        );
+      allow update: if isValidId(investmentId) && isValidInvestment(incoming()) &&
+        incoming().id == existing().id &&
+        incoming().createdAt == existing().createdAt && (
+          isAdmin() ||
+          (
+            (!hasSecret(existing().investorId) || isParticipantOwner(existing().investorId)) &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['status'])
+          )
+        );
+      allow delete: if isValidId(investmentId) && (isAdmin() || existing().eventId == 'grade12_pitch_2026');
+    }
+
+    // Validation Blueprint: Reaction
+    function isValidReaction(data) {
+      return data.keys().hasAll([
+        'id', 'eventId', 'participantId', 'participantName',
+        'projectId', 'projectName', 'reactionType', 'active',
+        'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'id', 'eventId', 'participantId', 'participantName',
+        'projectId', 'projectName', 'reactionType', 'active',
+        'createdAt', 'updatedAt'
+      ]) &&
+      data.id is string && data.id.size() <= 128 &&
+      data.eventId == 'grade12_pitch_2026' &&
+      data.participantId is string && data.participantId.size() <= 64 &&
+      data.participantName is string && data.participantName.size() <= 100 &&
+      data.projectId is string && data.projectId.size() <= 64 &&
+      data.projectName is string && data.projectName.size() <= 120 &&
+      data.reactionType in ['fire', 'idea', 'clap', 'rocket', 'heart', 'target', 'mindblown', 'star'] &&
+      data.active is bool &&
+      data.createdAt is string && data.createdAt.size() <= 64 &&
+      data.updatedAt is string && data.updatedAt.size() <= 64;
+    }
+
+    match /reactions/{reactionId} {
+      allow get: if isValidId(reactionId);
+      allow list: if existing().eventId == 'grade12_pitch_2026';
+      allow create: if isValidId(reactionId) && isValidReaction(incoming()) && incoming().id == reactionId &&
+        isValidId(incoming().participantId) && (
+          isAdmin() ||
+          !hasSecret(incoming().participantId) ||
+          isParticipantOwner(incoming().participantId)
+        );
+      allow update: if isValidId(reactionId) && isValidReaction(incoming()) &&
+        incoming().id == existing().id &&
+        incoming().createdAt == existing().createdAt && (
+          isAdmin() ||
+          (
+            (!hasSecret(existing().participantId) || isParticipantOwner(existing().participantId)) &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['active', 'updatedAt'])
+          )
+        );
+      allow delete: if isValidId(reactionId) && (isAdmin() || existing().eventId == 'grade12_pitch_2026');
+    }
+
+    // Validation Blueprint: Presentation
+    function isValidPresentation(data) {
+      return data.keys().hasAll([
+        'id', 'eventId', 'projectId', 'projectName', 'entrepreneurName',
+        'roundNumber', 'assignedDurationSec', 'status', 'startedAt',
+        'endedAt', 'createdAt'
+      ]) &&
+      data.keys().hasOnly([
+        'id', 'eventId', 'projectId', 'projectName', 'entrepreneurName',
+        'roundNumber', 'assignedDurationSec', 'status', 'startedAt',
+        'endedAt', 'createdAt'
+      ]) &&
+      data.id is string && data.id.size() <= 64 &&
+      data.eventId == 'grade12_pitch_2026' &&
+      data.projectId is string && data.projectId.size() <= 64 &&
+      data.projectName is string && data.projectName.size() <= 120 &&
+      data.entrepreneurName is string && data.entrepreneurName.size() <= 100 &&
+      data.roundNumber is number && data.roundNumber >= 1 &&
+      data.assignedDurationSec is number && data.assignedDurationSec >= 60 && data.assignedDurationSec <= 600 &&
+      data.status in ['spinning', 'active', 'paused', 'completed'] &&
+      data.startedAt is string && data.startedAt.size() <= 64 &&
+      data.endedAt is string && data.endedAt.size() <= 64 &&
+      data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    match /presentations/{presentationId} {
+      allow get: if isValidId(presentationId);
+      allow list: if existing().eventId == 'grade12_pitch_2026';
+      allow create: if isValidId(presentationId) && isValidPresentation(incoming()) && incoming().id == presentationId;
+      allow update: if isValidId(presentationId) && isValidPresentation(incoming()) &&
+        incoming().id == existing().id &&
+        incoming().createdAt == existing().createdAt && (
+          isAdmin() ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'startedAt', 'endedAt'])
+        );
+      allow delete: if isValidId(presentationId) && (isAdmin() || existing().eventId == 'grade12_pitch_2026');
+    }
+
+    // Validation Blueprint: AdminLog
+    function isValidAdminLog(data) {
+      return data.keys().hasAll(['id', 'eventId', 'action', 'details', 'actor', 'createdAt']) &&
+      data.keys().hasOnly(['id', 'eventId', 'action', 'details', 'actor', 'createdAt']) &&
+      data.id is string && data.id.size() <= 64 &&
+      data.eventId == 'grade12_pitch_2026' &&
+      data.action is string && data.action.size() <= 100 &&
+      data.details is string && data.details.size() <= 300 &&
+      data.actor is string && data.actor.size() <= 100 &&
+      data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    match /admin_logs/{logId} {
+      allow get: if isValidId(logId);
+      allow list: if existing().eventId == 'grade12_pitch_2026';
+      allow create: if isValidId(logId) && isValidAdminLog(incoming()) && incoming().id == logId;
+      allow update: if isValidId(logId) && isValidAdminLog(incoming()) && isAdmin() &&
+        incoming().id == existing().id &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['details']);
+      allow delete: if isValidId(logId) && (isAdmin() || existing().eventId == 'grade12_pitch_2026');
+    }
+  }
+}

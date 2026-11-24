@@ -1,0 +1,6 @@
+{
+  "name": "PITCH INVESTORS",
+  "description": "Plataforma neobrutalista de presentación de proyectos e inversión simulada en tiempo real para Grado 12.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

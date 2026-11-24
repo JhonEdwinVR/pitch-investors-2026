@@ -1,0 +1,334 @@
+{
+  "entities": {
+    "EventConfig": {
+      "title": "EventConfig",
+      "description": "Configuración global y estado en tiempo real del evento PITCH INVESTORS.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "eventId": { "type": "string", "maxLength": 64 },
+        "name": { "type": "string", "maxLength": 120 },
+        "subtitle": { "type": "string", "maxLength": 200 },
+        "stage": {
+          "type": "string",
+          "enum": ["registration", "closed_registration", "roulette", "presenting", "paused", "finished"]
+        },
+        "registrationMode": {
+          "type": "string",
+          "enum": ["single", "dual"]
+        },
+        "visibilityMode": {
+          "type": "string",
+          "enum": ["admin_only", "private_totals", "public"]
+        },
+        "entrepreneurCanInvest": { "type": "boolean" },
+        "initialBudgetPerInvestor": { "type": "number" },
+        "activeProjectId": { "type": "string", "maxLength": 64 },
+        "activePresentationId": { "type": "string", "maxLength": 64 },
+        "activeRoundNumber": { "type": "number" },
+        "timerStatus": {
+          "type": "string",
+          "enum": ["idle", "running", "paused", "ended"]
+        },
+        "timerDurationSec": { "type": "number" },
+        "timerEndsAtMs": { "type": "number" },
+        "timerRemainingSecWhenPaused": { "type": "number" },
+        "adminPin": { "type": "string", "maxLength": 32 },
+        "lastNotification": { "type": "string", "maxLength": 240 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": [
+        "id",
+        "eventId",
+        "name",
+        "stage",
+        "registrationMode",
+        "visibilityMode",
+        "initialBudgetPerInvestor",
+        "activeRoundNumber",
+        "timerStatus",
+        "timerDurationSec",
+        "timerEndsAtMs",
+        "timerRemainingSecWhenPaused",
+        "adminPin",
+        "updatedAt"
+      ]
+    },
+    "Participant": {
+      "title": "Participant",
+      "description": "Estudiante registrado como emprendedor o inversor.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "eventId": { "type": "string", "maxLength": 64 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "normalizedName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "role": { "type": "string", "enum": ["entrepreneur", "investor"] },
+        "projectId": { "type": "string", "maxLength": 64 },
+        "projectName": { "type": "string", "maxLength": 120 },
+        "status": { "type": "string", "enum": ["active", "suspended"] },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": [
+        "id",
+        "eventId",
+        "name",
+        "normalizedName",
+        "role",
+        "projectId",
+        "projectName",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "Proyecto de grado 12 inscrito para presentación e inversión.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "eventId": { "type": "string", "maxLength": 64 },
+        "code": { "type": "string", "maxLength": 32 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "category": { "type": "string", "maxLength": 160 },
+        "entrepreneurId": { "type": "string", "maxLength": 64 },
+        "entrepreneurName": { "type": "string", "maxLength": 100 },
+        "grade": { "type": "string", "maxLength": 32 },
+        "status": { "type": "string", "enum": ["pending", "active", "presented"] },
+        "presentationOrder": { "type": "number" },
+        "assignedDurationSec": { "type": "number" },
+        "totalInvested": { "type": "number" },
+        "investorCount": { "type": "number" },
+        "totalReactions": { "type": "number" },
+        "fireCount": { "type": "number" },
+        "ideaCount": { "type": "number" },
+        "clapCount": { "type": "number" },
+        "rocketCount": { "type": "number" },
+        "heartCount": { "type": "number" },
+        "targetCount": { "type": "number" },
+        "mindblownCount": { "type": "number" },
+        "starCount": { "type": "number" },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": [
+        "id",
+        "eventId",
+        "code",
+        "name",
+        "category",
+        "entrepreneurId",
+        "entrepreneurName",
+        "grade",
+        "status",
+        "presentationOrder",
+        "assignedDurationSec",
+        "totalInvested",
+        "investorCount",
+        "totalReactions",
+        "fireCount",
+        "ideaCount",
+        "clapCount",
+        "rocketCount",
+        "heartCount",
+        "targetCount",
+        "mindblownCount",
+        "starCount",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Budget": {
+      "title": "Budget",
+      "description": "Presupuesto virtual individual asignado a cada inversor.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "eventId": { "type": "string", "maxLength": 64 },
+        "investorId": { "type": "string", "maxLength": 64 },
+        "investorName": { "type": "string", "maxLength": 100 },
+        "initialBudget": { "type": "number" },
+        "availableBudget": { "type": "number" },
+        "investedBudget": { "type": "number" },
+        "investmentCount": { "type": "number" },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": [
+        "id",
+        "eventId",
+        "investorId",
+        "investorName",
+        "initialBudget",
+        "availableBudget",
+        "investedBudget",
+        "investmentCount",
+        "updatedAt"
+      ]
+    },
+    "Investment": {
+      "title": "Investment",
+      "description": "Operación individual de inversión simulada con doble confirmación.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "eventId": { "type": "string", "maxLength": 64 },
+        "investorId": { "type": "string", "maxLength": 64 },
+        "investorName": { "type": "string", "maxLength": 100 },
+        "projectId": { "type": "string", "maxLength": 64 },
+        "projectName": { "type": "string", "maxLength": 120 },
+        "amount": { "type": "number" },
+        "roundNumber": { "type": "number" },
+        "status": { "type": "string", "enum": ["confirmed", "cancelled", "rejected"] },
+        "previousCapital": { "type": "number" },
+        "remainingCapital": { "type": "number" },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "timeFormatted": { "type": "string", "maxLength": 32 }
+      },
+      "required": [
+        "id",
+        "eventId",
+        "investorId",
+        "investorName",
+        "projectId",
+        "projectName",
+        "amount",
+        "roundNumber",
+        "status",
+        "previousCapital",
+        "remainingCapital",
+        "createdAt",
+        "timeFormatted"
+      ]
+    },
+    "Reaction": {
+      "title": "Reaction",
+      "description": "Reacción predeterminada registrada por un participante hacia un proyecto.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "eventId": { "type": "string", "maxLength": 64 },
+        "participantId": { "type": "string", "maxLength": 64 },
+        "participantName": { "type": "string", "maxLength": 100 },
+        "projectId": { "type": "string", "maxLength": 64 },
+        "projectName": { "type": "string", "maxLength": 120 },
+        "reactionType": {
+          "type": "string",
+          "enum": ["fire", "idea", "clap", "rocket", "heart", "target", "mindblown", "star"]
+        },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": [
+        "id",
+        "eventId",
+        "participantId",
+        "participantName",
+        "projectId",
+        "projectName",
+        "reactionType",
+        "active",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Presentation": {
+      "title": "Presentation",
+      "description": "Registro histórico de cada ronda de presentación y tiempo asignado por ruleta.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "eventId": { "type": "string", "maxLength": 64 },
+        "projectId": { "type": "string", "maxLength": 64 },
+        "projectName": { "type": "string", "maxLength": 120 },
+        "entrepreneurName": { "type": "string", "maxLength": 100 },
+        "roundNumber": { "type": "number" },
+        "assignedDurationSec": { "type": "number" },
+        "status": { "type": "string", "enum": ["spinning", "active", "paused", "completed"] },
+        "startedAt": { "type": "string", "maxLength": 64 },
+        "endedAt": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": [
+        "id",
+        "eventId",
+        "projectId",
+        "projectName",
+        "entrepreneurName",
+        "roundNumber",
+        "assignedDurationSec",
+        "status",
+        "startedAt",
+        "endedAt",
+        "createdAt"
+      ]
+    },
+    "AdminLog": {
+      "title": "AdminLog",
+      "description": "Registro de auditoría de acciones administrativas.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "eventId": { "type": "string", "maxLength": 64 },
+        "action": { "type": "string", "maxLength": 100 },
+        "details": { "type": "string", "maxLength": 300 },
+        "actor": { "type": "string", "maxLength": 100 },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "eventId", "action", "details", "actor", "createdAt"]
+    },
+    "ParticipantSecret": {
+      "title": "ParticipantSecret",
+      "description": "Credencial privada (hash SHA-256 del PIN de 4 dígitos y UID propietario) para impedir suplantación entre estudiantes.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "eventId": { "type": "string", "maxLength": 64 },
+        "pinHash": { "type": "string", "minLength": 64, "maxLength": 64, "pattern": "^[a-f0-9]{64}$" },
+        "ownerUid": { "type": "string", "maxLength": 128 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "eventId", "pinHash", "ownerUid", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/events/{eventId}": {
+      "schema": { "$ref": "#/entities/EventConfig" },
+      "description": "Configuración y estado sincronizado del evento."
+    },
+    "/participants/{participantId}": {
+      "schema": { "$ref": "#/entities/Participant" },
+      "description": "Participantes registrados (Emprendedores e Inversores)."
+    },
+    "/projects/{projectId}": {
+      "schema": { "$ref": "#/entities/Project" },
+      "description": "Proyectos inscritos de Grado 12."
+    },
+    "/budgets/{budgetId}": {
+      "schema": { "$ref": "#/entities/Budget" },
+      "description": "Presupuestos virtuales asignados a cada inversor."
+    },
+    "/investments/{investmentId}": {
+      "schema": { "$ref": "#/entities/Investment" },
+      "description": "Transacciones de inversión simulada."
+    },
+    "/reactions/{reactionId}": {
+      "schema": { "$ref": "#/entities/Reaction" },
+      "description": "Reacciones en tiempo real por proyecto."
+    },
+    "/presentations/{presentationId}": {
+      "schema": { "$ref": "#/entities/Presentation" },
+      "description": "Rondas de presentación y tiempos asignados."
+    },
+    "/admin_logs/{logId}": {
+      "schema": { "$ref": "#/entities/AdminLog" },
+      "description": "Historial de modificaciones administrativas."
+    },
+    "/participant_secrets/{participantId}": {
+      "schema": { "$ref": "#/entities/ParticipantSecret" },
+      "description": "Credenciales privadas de PIN y UID de sesión por participante."
+    }
+  }
+}

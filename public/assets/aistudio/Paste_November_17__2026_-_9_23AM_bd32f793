@@ -1,0 +1,795 @@
+# **Plan de aplicación: PITCH INVESTORS**
+
+
+
+Propuesta funcional
+
+Neobrutalismo
+
+Multijugador en tiempo real
+
+
+
+La idea es convertir la presentación de proyectos de grado 12 en una experiencia de inversión simulada. Los estudiantes que presentan sus proyectos se convierten en emprendedores y los demás estudiantes asumen el papel de inversores, reciben un presupuesto virtual y deciden qué proyectos apoyar.
+
+La aplicación debe funcionar como un pequeño mercado de inversión: hay registro, presentación, asignación de capital, decisiones de inversión, reacciones y una clasificación final.
+
+El sistema debe ser sencillo para los estudiantes, pero ofrecer al administrador control completo sobre la actividad y acceso a todos los datos.
+
+# **1. Concepto general**
+
+# **PITCHINVESTORS.**
+
+## **IDEAS QUE MERECEN INVERSIÓN.**
+
+SIMULACIÓN DE INVERSIÓN · GRADO 12
+
+**EMPRENDEDORES**
+
+Presentan y defienden sus proyectos.
+
+**INVERSORES**
+
+Analizan, reaccionan y deciden dónde invertir.
+
+**OBJETIVO**
+
+Top 5
+
+Identificar los cinco proyectos que consiguieron mayor inversión acumulada al finalizar todas las presentaciones.
+
+## **2. Roles de los participantes**
+
+La aplicación tendrá tres roles:
+
+| Rol           | Funciones                                                                                            |
+| ------------- | ---------------------------------------------------------------------------------------------------- |
+| Emprendedor   | Registrar su proyecto, presentar y recibir inversiones y reacciones.                                 |
+| Inversor      | Recibir presupuesto, explorar proyectos, invertir y reaccionar.                                      |
+| Administrador | Configurar el evento, controlar las rondas, supervisar las inversiones y consultar la base de datos. |
+
+**Regla fundamental:** un estudiante que presenta un proyecto no puede invertir en su propio proyecto ni administrar el presupuesto de otros inversores.
+
+La identificación será por nombre, sin contraseñas para los participantes.
+
+# **3. Recorrido de la aplicación**
+
+La aplicación tendrá seis etapas principales.
+
+1. **REGISTRO DE PARTICIPANTES**
+
+   Cada estudiante ingresa su nombre. Si presenta un proyecto, también registra el nombre del proyecto. Si solamente participa como inversor, deja ese campo vacío.
+2. **CIERRE DE REGISTRO**
+
+   El administrador cierra el registro. Se genera la lista definitiva de proyectos y se habilita la asignación de presupuestos.
+3. **ASIGNACIÓN DE PRESUPUESTOS**
+
+   Todos los inversores reciben una cantidad igual de dinero virtual, definida por el administrador.
+4. **RULETA DE PROYECTOS Y TIEMPO**
+
+   Una ruleta selecciona aleatoriamente el siguiente proyecto y otra determina su tiempo de exposición, entre 2 y 4 minutos.
+5. **PRESENTACIÓN E INVERSIÓN**
+
+   Los estudiantes observan el pitch, reaccionan y pueden invertir durante el tiempo habilitado. Cada inversión requiere doble confirmación.
+6. **RESULTADOS Y RANKING**
+
+   Al terminar todas las presentaciones, se publica la clasificación de los cinco proyectos con mayor capital recibido.
+
+# **4. Diseño funcional de cada módulo**
+
+## **Módulo 01. Registro**
+
+[Skvot Website :: Behance](https://images.openai.com/static-rsc-4/WNLmyEmzfPyIhoyMiOIQUQpjymNZx_rG2p5ThZabGkiahRrCgTqDgBKXc4KjD4j3e_DaMTN3JBbHQLUgg7SsB4bCpqE-Mg0BH5FcRPUmcVji80lI0Esdvc9K4rlUAoTyJzY7DVoQdRWfCGEpunFP5FkOIeRzHOQoKNgkvyz8FGk?purpose=inline)
+
+[behance.net](https://www.behance.net/gallery/159061511/Skvot-Website?utm_source=chatgpt.com)
+
+Una pantalla de acceso sencilla, sin creación de cuentas ni contraseñas.
+
+**Campos de registro:**
+
+- Nombre completo.
+- Nombre del proyecto (opcional, únicamente para quienes presentan).
+
+El sistema identifica automáticamente el rol según si el estudiante registra un proyecto.
+
+Después del registro aparece una confirmación:
+
+- Nombre del participante.
+- Rol asignado.
+- Nombre del proyecto, si corresponde.
+- Estado: registrado.
+
+**Reglas:**
+
+- No permitir nombres vacíos.
+- Evitar registros duplicados.
+- No permitir cambiar el proyecto una vez cerrado el registro, salvo autorización del administrador.
+- Mostrar un contador de participantes y proyectos inscritos.
+
+## **Módulo 02. Lista de proyectos**
+
+Antes de comenzar las presentaciones, todos pueden consultar los proyectos registrados.
+
+Cada proyecto tendrá una tarjeta visual:
+
+PROYECTO 001
+
+GRADO 12
+
+# **ECO DESIGN**
+
+Proyecto de diseño y sostenibilidad
+
+PRESENTADO POR
+
+**Nombre del estudiante**
+
+INVERSIÓN ACTUAL
+
+**$0**
+
+PENDIENTE DE PRESENTACIÓN
+
+La lista debe actualizarse automáticamente cuando se registren nuevos proyectos.
+
+El administrador tendrá un botón para cerrar el registro y bloquear nuevas inscripciones.
+
+## **Módulo 03. Presupuesto de los inversores**
+
+Este es uno de los elementos centrales de la experiencia.
+
+Cuando se cierre el registro, el administrador podrá definir el capital virtual que recibirá cada inversor.
+
+Ejemplo:
+
+PRESUPUESTO ASIGNADO
+
+# **$100.000**
+
+Capital virtual por inversor
+
+Disponible
+
+# **$70.000**
+
+Invertido
+
+# **$30.000**
+
+30% del capital utilizado
+
+El presupuesto debe ser configurable: por ejemplo, $50.000, $100.000 o $200.000.
+
+**Reglas de inversión:**
+
+1. Todos los inversores reciben el mismo presupuesto inicial.
+2. El presupuesto es personal e intransferible.
+3. Un inversor puede repartir su capital entre diferentes proyectos.
+4. No puede invertir más dinero del que tiene disponible.
+5. No puede invertir en su propio proyecto.
+6. El dinero invertido se descuenta inmediatamente después de confirmar la operación.
+7. El capital invertido se acumula en el proyecto seleccionado.
+8. El dinero no utilizado no se convierte en inversión.
+
+Los valores son simulados y no representan dinero real.
+
+## **Módulo 04. Ruleta de selección de proyectos**
+
+[NICOLÁS MOYANO](https://images.openai.com/static-rsc-4/qboOoGL9_fAI5SxZvvWACKOtZEJq2CbAYiDCJJFnnxt6gNEEQkfWQKdmCBTgXN7FZMjJ9XP5U0pqwnn7nw2jpEGQCSVlFdL2rDJXG0oKbW4wEvRJlKFyGAlwb9LunfTEL-w7AzDuSocyc__1fA1BAy_9nf5gPYZ55Q-le6woSxA?purpose=inline)
+
+[nicomoyano.dev](https://nicomoyano.dev/?utm_source=chatgpt.com)
+
+Habrá dos ruletas independientes.
+
+**Ruleta A: selección del proyecto**
+
+- Contiene todos los proyectos inscritos.
+- Selecciona uno aleatoriamente.
+- No permite seleccionar dos veces el mismo proyecto.
+- Los proyectos seleccionados desaparecen de la ruleta.
+- Al finalizar una presentación, se habilita la siguiente selección.
+
+**Ruleta B: tiempo de presentación**
+
+Selecciona aleatoriamente uno de estos tiempos:
+
+# **2:00**
+
+**MINUTOS**
+
+# **3:00**
+
+**MINUTOS**
+
+# **4:00**
+
+**MINUTOS**
+
+El tiempo se asigna automáticamente y no puede ser modificado por los participantes.
+
+**Una vez que ambas ruletas terminan, comienza la ronda.**
+
+## **Módulo 05. Pantalla de presentación e inversión**
+
+Esta es la pantalla más importante de la aplicación. Debe poder proyectarse en un videobeam y, al mismo tiempo, utilizarse desde los dispositivos de los estudiantes.
+
+[xultra100 : Ultra Marathon - Running Website Landing Page by Rama Dharma on Dribbble](https://images.openai.com/static-rsc-4/1gwyvgRlVmdJsmMzTkf8_vMqHzdE5APhq4NDO3Bz0utPhWxK6y1pFQcEely3Vf_nHfR2GwNI5yp2mkEiB3GkaJv1eFTngR2Uu2GtrTazgtDnFqRO-RHdTcghQTnFutFZgGcB8OIgpoaYmEYX91bq0cPlIm9YOvCrG_zDqHD85QU?purpose=inline)
+
+[dribbble.com](https://dribbble.com/shots/26787129-xultra100-Ultra-Marathon-Running-Website-Landing-Page?utm_source=chatgpt.com)
+
+La pantalla tendrá dos visualizaciones complementarias:
+
+**A. Pantalla principal de proyección**
+
+Mostrará:
+
+- Nombre del proyecto.
+- Nombre del emprendedor.
+- Número de presentación.
+- Temporizador grande.
+- Capital acumulado.
+- Cantidad de inversores que han participado.
+- Reacciones recibidas.
+- Estado de la ronda.
+
+**B. Pantalla del inversor**
+
+Cada estudiante verá en su dispositivo:
+
+RONDA ACTIVA
+
+PROYECTO 03 / 08
+
+**PROYECTO ECO DESIGN**
+
+# **02:34**
+
+TIEMPO RESTANTE
+
+Tu capital disponible
+
+**$70.000**
+
+**¿Cuánto deseas invertir?**
+
+**$5.000**
+
+**$10.000**
+
+**$20.000**
+
+OTRO VALOR
+
+**$ \_\_\_\_\_\_\_\_\_\_**
+
+**INVERTIR EN ESTE PROYECTO**
+
+Requiere confirmación adicional
+
+**Doble confirmación de inversión**
+
+Para evitar errores, ninguna inversión se realizará con un solo clic.
+
+El proceso será:
+
+1. El inversor selecciona el monto.
+2. Pulsa el botón de invertir.
+3. Aparece una ventana de confirmación.
+4. Se muestra el monto, el proyecto y el capital restante.
+5. El estudiante confirma o cancela.
+
+Ejemplo:
+
+# **¿CONFIRMAR INVERSIÓN?**
+
+Vas a invertir $20.000 en ECO DESIGN.
+
+Capital anterior
+
+**$70.000**
+
+Inversión
+
+**-$20.000**
+
+**Capital restante**\
+**$50.000**
+
+## **CONFIRMAR**
+
+**CANCELAR OPERACIÓN**
+
+Una vez confirmada, la operación queda registrada y el capital se actualiza en tiempo real.
+
+**Importante:** si el tiempo termina, se bloquean las nuevas inversiones. Una operación que no haya sido confirmada no debe descontar dinero.
+
+## **Módulo 06. Reacciones**
+
+No habrá chat, mensajes, comentarios ni conversaciones entre participantes.
+
+La interacción social será exclusivamente mediante reacciones predeterminadas.
+
+**¿QUÉ OPINAS DE ESTE PROYECTO?**
+
+# **🔥**
+
+Impactante
+
+# **💡**
+
+Innovador
+
+# **👏**
+
+Excelente
+
+# **🚀**
+
+Potencial
+
+# **❤️**
+
+Me gusta
+
+# **🎯**
+
+Viable
+
+# **🤯**
+
+Sorprendente
+
+# **⭐**
+
+Destacado
+
+Ejemplo visual de las reacciones disponibles. Cada estudiante podrá seleccionar las que considere pertinentes.
+
+Reglas:
+
+- Un estudiante puede reaccionar durante cada presentación.
+- Puede utilizar diferentes tipos de reacciones.
+- Puede modificar su reacción mientras la ronda esté activa.
+- Se registra el número de reacciones por proyecto.
+- Se muestra un contador en tiempo real.
+- No se permiten comentarios escritos.
+
+Las reacciones serán un indicador complementario de participación y percepción, pero no afectarán el capital invertido ni el ranking económico.
+
+# **5. Ranking final: los cinco proyectos más financiados**
+
+[Best UK Competition Websites: Honest Buyer's Guide | Sweepzy | Sweepzy](https://images.openai.com/static-rsc-4/Wqch2LXxeQSlVebKamLtiueGZ7E7VXNmr4X-oLoC0yMyJlESU46TIdhO3DAGWJEJzplJQbPdDIolBAksAdK16W_FTYvQKpVZPv-z1TvthWGHYPk-FlchLEdJpvovMK_FSPfp3ar-kvX0w-mCW4Z8OZKQKYChY4l8TTf2Hm_uaeU?purpose=inline)
+
+[sweepzy.co.uk](https://sweepzy.co.uk/blog/best-competition-websites-uk?utm_source=chatgpt.com)
+
+Cuando todos los proyectos hayan terminado su presentación, el administrador podrá cerrar el evento y publicar el ranking.
+
+El ranking se calcula automáticamente según el capital total recibido.
+
+# **TOP 05**
+
+PROYECTOS CON MAYOR INVERSIÓN
+
+## **01 — ECO DESIGN**
+
+# **$850.000**
+
+24 inversores
+
+**02 — NEO FUTURE**
+
+# **$720.000**
+
+19 inversores
+
+**03 — ART LAB**
+
+# **$610.000**
+
+17 inversores
+
+**04 — GREEN CITY**
+
+# **$540.000**
+
+15 inversores
+
+**05 — PIXEL WORLD**
+
+# **$430.000**
+
+13 inversores
+
+Datos ilustrativos para representar la presentación final.
+
+El ranking también debe permitir consultar:
+
+- Capital total recibido.
+- Número de inversores diferentes.
+- Promedio de inversión.
+- Número total de reacciones.
+- Distribución de inversiones por monto.
+
+En caso de empate, se recomienda compartir la misma posición y ordenar los siguientes puestos por capital recibido, sin inventar diferencias.
+
+# **6. Panel de administración**
+
+Este módulo es fundamental. El administrador tendrá una vista independiente, protegida mediante una contraseña o PIN que no se comparte con los participantes.
+
+[NEURO Dashboard UI Kit — Neobrutalist Admin Design System by Muhammad Farhan Juna on Dribbble](https://images.openai.com/static-rsc-4/KeA7Iyevr-6V68uSfx6YQ0lXetlqQ88M6UrQmjLbEg9BsCuZx5TZdAOjEAdJSKMqaluOpH6tq7GkFoMo1EjbBj7rWOgF3iT40eSzaZFQq6oGpis3W64BmeYO493tCYr4_JLqHqXOr9OFVsa9jufu8eD-uCX3VeXOlw3UJKXZG5c?purpose=inline)
+
+[dribbble.com](https://dribbble.com/shots/27505326-NEURO-Dashboard-UI-Kit-Neobrutalist-Admin-Design-System?utm_source=chatgpt.com)
+
+El panel tendrá seis secciones.
+
+## **A. Control del evento**
+
+| Acción                 | Función                                                |
+| ---------------------- | ------------------------------------------------------ |
+| Abrir registro         | Habilita inscripciones.                                |
+| Cerrar registro        | Bloquea nuevos participantes.                          |
+| Asignar presupuesto    | Define capital por inversor.                           |
+| Iniciar evento         | Habilita las ruletas.                                  |
+| Pausar presentación    | Detiene temporalmente el cronómetro y las inversiones. |
+| Reanudar presentación  | Continúa la ronda.                                     |
+| Finalizar presentación | Cierra inversiones y pasa a la siguiente.              |
+| Cerrar evento          | Calcula y publica resultados.                          |
+
+También tendrá la posibilidad de seleccionar manualmente un proyecto si existe un problema con la ruleta.
+
+## **B. Participantes y proyectos**
+
+Una tabla explorable con:
+
+| Participante | Rol         | Proyecto   | Presupuesto |
+| ------------ | ----------- | ---------- | ----------- |
+| Estudiante A | Emprendedor | Eco Design | —           |
+| Estudiante B | Inversor    | —          | $100.000    |
+| Estudiante C | Inversor    | —          | $100.000    |
+
+Funciones:
+
+- Buscar participantes.
+- Filtrar por rol.
+- Consultar proyectos.
+- Modificar registros antes de iniciar el evento.
+- Consultar quién está participando.
+- Identificar registros duplicados.
+
+## **C. Seguimiento de inversiones**
+
+Esta será una de las herramientas más útiles para supervisar el comportamiento de los participantes.
+
+| Inversor     | Proyecto   | Monto   | Estado     |
+| ------------ | ---------- | ------- | ---------- |
+| Estudiante B | Eco Design | $20.000 | Confirmada |
+| Estudiante C | Neo Future | $10.000 | Confirmada |
+| Estudiante D | Eco Design | $5.000  | Confirmada |
+
+El administrador podrá consultar:
+
+- Quién invirtió.
+- Cuánto dinero invirtió.
+- En qué proyecto.
+- A qué hora.
+- En qué ronda.
+- Cuánto presupuesto le queda.
+- Cuántas inversiones realizó.
+
+Cada operación tendrá un identificador único para impedir que un mismo clic genere dos transacciones.
+
+## **D. Analíticas e interacciones**
+
+El panel mostrará gráficas y estadísticas de participación.
+
+# **85**
+
+Participantes
+
+# **42**
+
+Inversores activos
+
+# **156**
+
+Inversiones realizadas
+
+# **320**
+
+Reacciones
+
+Además, permitirá analizar:
+
+- Proyectos con mayor cantidad de inversores.
+- Inversores más activos.
+- Participantes que no han invertido.
+- Distribución del capital entre proyectos.
+- Reacciones más utilizadas.
+- Actividad por minuto durante cada presentación.
+- Inversiones rechazadas o canceladas.
+- Presupuesto sin utilizar.
+
+## **E. Base de datos explorable**
+
+Toda la información debe estar vinculada a una base de datos central.
+
+El administrador tendrá una sección llamada **BASE DE DATOS**, con pestañas para explorar cada tipo de información.
+
+| Tabla          | Información almacenada                                     |
+| -------------- | ---------------------------------------------------------- |
+| Participantes  | ID, nombre, rol, fecha de registro.                        |
+| Proyectos      | ID, nombre, emprendedor, estado, posición de presentación. |
+| Presupuestos   | Inversor, presupuesto inicial, disponible, utilizado.      |
+| Inversiones    | Inversor, proyecto, monto, fecha, hora, ronda.             |
+| Reacciones     | Participante, proyecto, tipo, fecha.                       |
+| Presentaciones | Proyecto, tiempo asignado, inicio, finalización.           |
+| Eventos        | Configuración, estado y fechas.                            |
+
+Debe incluir:
+
+- Búsqueda general.
+- Filtros por participante, proyecto y fecha.
+- Ordenamiento de columnas.
+- Visualización de registros individuales.
+- Exportación a Excel o CSV.
+- Historial de modificaciones administrativas.
+
+**La base de datos debe conservar el historial completo, incluso cuando una presentación termine.** No se deben sobrescribir las inversiones anteriores al actualizar los totales.
+
+## **F. Seguridad y control**
+
+- Solo el administrador puede cambiar la configuración.
+- Los participantes no pueden modificar presupuestos.
+- Los inversores no pueden modificar inversiones confirmadas.
+- Los emprendedores no pueden alterar el capital recibido.
+- El sistema debe validar las operaciones en el servidor, no solamente en la interfaz.
+- El administrador puede suspender una cuenta si detecta registros duplicados o comportamientos indebidos.
+- Todas las operaciones financieras simuladas deben quedar registradas.
+
+# **7. Arquitectura de navegación**
+
+La aplicación tendrá dos entornos claramente diferenciados.
+
+## **ENTORNO PÚBLICO**
+
+**01. Registro**
+
+Ingreso de participantes y proyectos.
+
+**02. Proyectos**
+
+Exploración de los proyectos inscritos.
+
+**03. Presentaciones**
+
+Ruletas, cronómetro, inversión y reacciones.
+
+**04. Resultados**
+
+Ranking final y estadísticas públicas.
+
+## **ENTORNO PRIVADO**
+
+**ADMINISTRACIÓN**
+
+Control del evento, participantes, inversiones, interacciones, estadísticas y base de datos.
+
+# **8. Sistema de diseño: Neobrutalismo**
+
+Se aplicará el manifiesto que compartiste. No debe parecer una plataforma financiera bancaria tradicional. Debe sentirse como una experiencia digital de competición, exposición y experimentación.
+
+[Overview Page designs, themes, templates and downloadable graphic elements on Dribbble](https://images.openai.com/static-rsc-4/wuh8SYbt4Zmu4j3acTchOvu4_gSrDbFjb3uwuNUCuaTb1Ihheq-c4cCX6milL_vgBzF4T4pR1Ahj_NmYy6JEj1Udwbbk1zuJG1GSk7mfY8lwHzaYRcevIhJsH_uECKqItSmkLtQGmY44i2Izi86mCHc5sAGTS0YeMl1DWAVoW8M?purpose=inline)
+
+[Browse thousands of Neubrutalism Dashboard images for design inspiration | Dribbble](https://images.openai.com/static-rsc-4/Zb_toEt6a_ExDhacTOusggt9ab8pE1aPAd9ve74a-bmFG4GR9OuqX_HCtOkGLZqrOwKl8FbXo0DoJAGh6765EKqM0JrMsVsyFn6GqXeMufeY_1h2T8YVK7Ip8tikMUmpt_lZ0HH-jDW4ptS-2GK4UUUw7tFFf0n5h35Sl43-CYA?purpose=inline)
+
+[Neubrutalism | Creative app design, Portfolio web design, Mobile app design inspiration](https://images.openai.com/static-rsc-4/cYrbqO3yD1BIkW2jbCP2waWQ9LRlXxdf8-IduMOnsoDa9_eHHpJuNjEI0rDhKn1ESw1bRpIcdOXB-e8OYAaylgiYQJll1X2QcfMp_Tr3lxvRKrkh5T7bBTTnixErDzIaJrLBpVgQcK2acUYPL9cL6Yo-JglIjtenM1Zww9H6T1s?purpose=inline)
+
+15
+
+## **Design tokens**
+
+| Elemento          | Especificación       |
+| ----------------- | -------------------- |
+| Fondo             | `#F4F4F0`            |
+| Negro estructural | `#000000`            |
+| Amarillo          | `#FFDC00`            |
+| Rosa              | `#FF90E8`            |
+| Azul              | `#90A8ED`            |
+| Verde             | `#B8FF9F`            |
+| Bordes            | 2–4 px negros        |
+| Esquinas          | 0–6 px               |
+| Sombras           | 4px 4px 0 #000       |
+| Títulos           | Syne / Archivo Black |
+| Cuerpo            | Inter                |
+| Datos             | Space Mono           |
+
+**Reglas de implementación visual:**
+
+1. Grid visible y divisiones estructurales.
+2. Sin degradados, blur ni glassmorphism.
+3. Sombras sólidas sin desenfoque.
+4. Botones con desplazamiento físico al presionar.
+5. Titulares grandes y contundentes.
+6. Badges tipo sticker para estados y categorías.
+7. Barras de progreso visibles.
+8. Diseño adaptable a celulares, tabletas y computadores.
+9. Scrollbars visibles y controles de aspecto mecánico.
+10. Animaciones breves y funcionales, sin afectar el rendimiento.
+
+La ruleta puede tener una animación más llamativa, pero manteniendo el lenguaje visual plano, geométrico y de alto contraste.
+
+# **9. Arquitectura técnica recomendada**
+
+Para que el sistema funcione simultáneamente en los dispositivos de todos los estudiantes, es importante separar la interfaz, el servidor y la base de datos.
+
+## **INTERFAZ WEB**
+
+React + Tailwind CSS + componentes neobrutalistas
+
+Celular · Tablet · PC · Videobeam
+
+## **BACKEND**
+
+Firebase Cloud Functions
+
+Validación de inversiones, roles, tiempo y reglas del evento.
+
+## **FIREBASE FIRESTORE**
+
+Base de datos en tiempo real
+
+Participantes · Proyectos · Inversiones · Reacciones · Historial
+
+**PANEL DE ADMINISTRACIÓN**
+
+Consulta, control, estadísticas y exportación de información.
+
+**¿Por qué recomiendo esta arquitectura?**
+
+- Firestore permite actualizar los montos y las reacciones en tiempo real.
+- Las transacciones del servidor permiten evitar que dos inversiones simultáneas gasten el mismo presupuesto.
+- Cloud Functions permite validar las reglas de negocio sin confiar en el navegador del estudiante.
+- La base de datos permite consultar posteriormente cada operación.
+- React facilita desarrollar una interfaz adaptable y reutilizable.
+
+No recomendaría utilizar Google Sheets como base principal de las transacciones si muchos estudiantes van a invertir simultáneamente. Puede utilizarse para exportar los resultados, pero no es la mejor solución para gestionar operaciones concurrentes.
+
+# **10. Reglas críticas que debe respetar el sistema**
+
+Estas condiciones deben programarse desde el inicio:
+
+| Situación                                            | Comportamiento esperado                                        |
+| ---------------------------------------------------- | -------------------------------------------------------------- |
+| Un estudiante intenta invertir en su proyecto        | Operación bloqueada.                                           |
+| Un estudiante intenta invertir más de su presupuesto | Operación bloqueada.                                           |
+| Dos estudiantes invierten simultáneamente            | Ambas operaciones se procesan de forma independiente y segura. |
+| Un estudiante presiona dos veces confirmar           | Solo se registra una inversión.                                |
+| Termina el tiempo                                    | Se bloquean nuevas inversiones.                                |
+| El administrador pausa                               | Se detiene el cronómetro y se bloquean inversiones.            |
+| Un proyecto ya fue presentado                        | No vuelve a aparecer en la ruleta.                             |
+| El estudiante abandona la página                     | Su presupuesto y sus inversiones permanecen guardados.         |
+| Se cae la conexión                                   | No se confirma una operación hasta que el servidor la valide.  |
+| Un proyecto no recibe inversiones                    | Aparece con $0 en los resultados.                              |
+
+Un detalle importante: el temporizador debe depender del tiempo del servidor, no del reloj del dispositivo del estudiante. De lo contrario, sería posible alterar el tiempo localmente.
+
+# **11. Etapas de desarrollo**
+
+Recomiendo desarrollar la aplicación en cinco fases para evitar construir una interfaz atractiva que después tenga problemas con la lógica de inversión.
+
+| Fase | Desarrollo                                 | Resultado                                |
+| ---- | ------------------------------------------ | ---------------------------------------- |
+| 1    | Registro, roles y proyectos                | Participantes y proyectos almacenados.   |
+| 2    | Presupuestos y base de datos               | Capital virtual y transacciones seguras. |
+| 3    | Ruletas, cronómetro y presentaciones       | Sistema de rondas funcional.             |
+| 4    | Inversiones, confirmaciones y reacciones   | Interacción en tiempo real.              |
+| 5    | Panel administrativo, analíticas y ranking | Sistema completo y listo para el evento. |
+
+Antes de utilizarla con los estudiantes, debe probarse con varios dispositivos simultáneos y verificar especialmente las inversiones concurrentes, el cierre de rondas y la recuperación de conexión.
+
+# **12. Funciones adicionales que recomiendo**
+
+Hay cinco funciones que pueden mejorar considerablemente la experiencia sin complicar demasiado la aplicación.
+
+**1. Modo proyección.** Una pantalla exclusiva para el videobeam, sin botones administrativos ni información privada de los inversores. Solo presenta el proyecto, cronómetro, capital acumulado y reacciones.
+
+**2. Animación de inversiones.** Cuando alguien invierte, aparece una pequeña notificación visual: «¡Un nuevo inversor ha apoyado este proyecto!». No se muestra necesariamente su identidad.
+
+**3. Historial personal.** Cada inversor puede consultar cuánto ha invertido, en qué proyectos y cuánto capital conserva.
+
+**4. Cierre de mercado.** Cuando finalice el evento, se bloquean todas las operaciones y se genera un informe con el ranking y las estadísticas.
+
+**5. Reconocimientos complementarios.** Además del Top 5 por inversión, se pueden entregar reconocimientos independientes:
+
+- Proyecto más innovador (según reacciones).
+- Proyecto con más inversores.
+- Proyecto con mayor participación.
+- Proyecto favorito del público.
+
+Estos reconocimientos no alteran el ranking económico.
+
+# **13. Definición final del producto**
+
+# **PITCH INVESTORS**
+
+## **YOUR IDEA. THEIR INVESTMENT.**
+
+PLATAFORMA DE PRESENTACIÓN E INVERSIÓN SIMULADA
+
+**Características del producto**
+
+Registro sin contraseña
+
+Incluido
+
+Presupuesto individual
+
+Incluido
+
+Ruletas aleatorias
+
+Incluido
+
+Cronómetro de 2–4 minutos
+
+Incluido
+
+Inversión con doble confirmación
+
+Incluido
+
+Reacciones sin chat
+
+Incluido
+
+Ranking Top 5
+
+Incluido
+
+Panel administrativo
+
+Incluido
+
+Base de datos explorable
+
+Incluido
+
+Actualización en tiempo real
+
+Incluido
+
+**Objetivo:** convertir las exposiciones de grado 12 en una experiencia colectiva de presentación, evaluación, participación y toma de decisiones.
+
+## **Una decisión importante antes de construirla**
+
+Hay un aspecto que conviene definir porque cambia la lógica de registro y la seguridad del sistema:
+
+**¿Cómo quieres identificar a los estudiantes que participan como inversores?**
+
+**1. Registro de participantes**
+
+Un único registro: nombre y proyecto opcional. Si no registra proyecto, es inversor.
+
+Dos opciones de registro: «Soy emprendedor» o «Soy inversor».
+
+**2. Presupuesto inicial por inversor**
+
+$50.000 virtuales
+
+$100.000 virtuales
+
+$200.000 virtuales
+
+Personalizable desde administración
+
+**3. Visibilidad de las inversiones**
+
+Públicas: todos pueden ver quién invirtió y cuánto.
+
+Privadas: solo se muestra el acumulado de cada proyecto.
+
+Solo el administrador puede ver los detalles; el público ve los acumulados.
+
+Confirmar decisiones
+
+Con estas decisiones se puede pasar de este plan conceptual a una especificación técnica completa, lista para desarrollar en Google AI Studio o con React y Firebase.
