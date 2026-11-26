@@ -545,25 +545,22 @@ export async function startPresentationRound(
 
   const batch = writeBatch(db);
 
-  // If another project was active, mark it presented
+  // If another project was active, mark it presented without overwriting live totals/reactions
   for (const proj of allProjects) {
     if (proj.status === 'active' && proj.id !== selectedProject.id) {
-      batch.set(doc(db, 'projects', proj.id), {
-        ...proj,
+      batch.update(doc(db, 'projects', proj.id), {
         status: 'presented',
         updatedAt: ts,
       });
     }
   }
 
-  const updatedProject: Project = {
-    ...selectedProject,
+  batch.update(doc(db, 'projects', selectedProject.id), {
     status: 'active',
     presentationOrder: roundNumber,
     assignedDurationSec: durationSec,
     updatedAt: ts,
-  };
-  batch.set(doc(db, 'projects', selectedProject.id), updatedProject);
+  });
 
   const presentationDoc: Presentation = {
     id: presentationId,
@@ -580,8 +577,7 @@ export async function startPresentationRound(
   };
   batch.set(doc(db, 'presentations', presentationId), presentationDoc);
 
-  const updatedEvent: EventConfig = {
-    ...eventConfig,
+  batch.update(doc(db, 'events', CURRENT_EVENT_ID), {
     stage: 'presenting',
     activeProjectId: selectedProject.id,
     activePresentationId: presentationId,
@@ -592,8 +588,7 @@ export async function startPresentationRound(
     timerRemainingSecWhenPaused: durationSec,
     lastNotification: `¡Ronda #${roundNumber} iniciada! Presentando: ${selectedProject.name} (${Math.round(durationSec / 60)}:00 min)`,
     updatedAt: ts,
-  };
-  batch.set(doc(db, 'events', CURRENT_EVENT_ID), updatedEvent);
+  });
 
   try {
     await batch.commit();
@@ -668,25 +663,20 @@ export async function finishCurrentPresentation(
   const batch = writeBatch(db);
 
   if (activeProject) {
-    const updatedProj: Project = {
-      ...activeProject,
+    batch.update(doc(db, 'projects', activeProject.id), {
       status: 'presented',
       updatedAt: ts,
-    };
-    batch.set(doc(db, 'projects', activeProject.id), updatedProj);
+    });
   }
 
   if (activePresentation) {
-    const updatedPres: Presentation = {
-      ...activePresentation,
+    batch.update(doc(db, 'presentations', activePresentation.id), {
       status: 'completed',
       endedAt: ts,
-    };
-    batch.set(doc(db, 'presentations', activePresentation.id), updatedPres);
+    });
   }
 
-  const updatedEvent: EventConfig = {
-    ...eventConfig,
+  batch.update(doc(db, 'events', CURRENT_EVENT_ID), {
     stage: 'roulette',
     timerStatus: 'ended',
     timerEndsAtMs: 0,
@@ -697,8 +687,7 @@ export async function finishCurrentPresentation(
       ? `Presentación de ${activeProject.name} finalizada. Lista la ruleta para el siguiente proyecto.`
       : 'Ronda finalizada. Lista la ruleta para la siguiente selección.',
     updatedAt: ts,
-  };
-  batch.set(doc(db, 'events', CURRENT_EVENT_ID), updatedEvent);
+  });
 
   try {
     await batch.commit();
@@ -720,16 +709,14 @@ export async function closeEventAndPublishRanking(
 
   for (const proj of allProjects) {
     if (proj.status === 'active') {
-      batch.set(doc(db, 'projects', proj.id), {
-        ...proj,
+      batch.update(doc(db, 'projects', proj.id), {
         status: 'presented',
         updatedAt: ts,
       });
     }
   }
 
-  const updatedEvent: EventConfig = {
-    ...eventConfig,
+  batch.update(doc(db, 'events', CURRENT_EVENT_ID), {
     stage: 'finished',
     timerStatus: 'ended',
     timerEndsAtMs: 0,
@@ -737,8 +724,7 @@ export async function closeEventAndPublishRanking(
     activePresentationId: '',
     lastNotification: '¡Mercado cerrado! Se ha publicado el Ranking Oficial TOP 05.',
     updatedAt: ts,
-  };
-  batch.set(doc(db, 'events', CURRENT_EVENT_ID), updatedEvent);
+  });
 
   try {
     await batch.commit();
@@ -863,8 +849,7 @@ export async function executeInvestmentTransaction(params: {
         updatedAt: ts,
       };
 
-      const updatedProject: Project = {
-        ...projectData,
+      const projectPatch = {
         totalInvested: projectData.totalInvested + cleanAmount,
         investorCount: hadInvestedBefore
           ? projectData.investorCount
@@ -888,16 +873,13 @@ export async function executeInvestmentTransaction(params: {
         timeFormatted: timeHHMMSS(),
       };
 
-      const updatedEvent: EventConfig = {
-        ...eventData,
+      transaction.set(budgetRef, updatedBudget);
+      transaction.update(projectRef, projectPatch);
+      transaction.set(investmentRef, newInvestment);
+      transaction.update(eventRef, {
         lastNotification: `¡Un nuevo inversor ha apoyado a ${projectData.name} con ${formatCurrency(cleanAmount)}!`,
         updatedAt: ts,
-      };
-
-      transaction.set(budgetRef, updatedBudget);
-      transaction.set(projectRef, updatedProject);
-      transaction.set(investmentRef, newInvestment);
-      transaction.set(eventRef, updatedEvent);
+      });
 
       return newInvestment;
     });
@@ -950,7 +932,7 @@ export async function toggleProjectReaction(params: {
   reactionType: ReactionType;
   existingReaction?: Reaction;
 }): Promise<void> {
-  const { participant, project, reactionType, existingReaction } = params;
+  const { participant, project, reactionType } = params;
   const reactionId = `${participant.id}_${project.id}_${reactionType}`.replace(
     /[^a-zA-Z0-9_-]/g,
     ''
@@ -958,41 +940,58 @@ export async function toggleProjectReaction(params: {
   const reactionMeta = REACTION_DEFINITIONS.find((r) => r.type === reactionType);
   if (!reactionMeta) return;
 
-  const ts = nowIso();
-  const nextActive = existingReaction ? !existingReaction.active : true;
-  const delta = nextActive ? 1 : -1;
-
-  const reactionDoc: Reaction = {
-    id: reactionId,
-    eventId: CURRENT_EVENT_ID,
-    participantId: participant.id,
-    participantName: participant.name,
-    projectId: project.id,
-    projectName: project.name,
-    reactionType,
-    active: nextActive,
-    createdAt: existingReaction ? existingReaction.createdAt : ts,
-    updatedAt: ts,
-  };
-
+  const reactionRef = doc(db, 'reactions', reactionId);
+  const projectRef = doc(db, 'projects', project.id);
   const countField = reactionMeta.countField;
-  const currentFieldCount = project[countField] || 0;
-  const nextFieldCount = Math.max(0, currentFieldCount + delta);
-  const nextTotalReactions = Math.max(0, (project.totalReactions || 0) + delta);
-
-  const updatedProject: Project = {
-    ...project,
-    [countField]: nextFieldCount,
-    totalReactions: nextTotalReactions,
-    updatedAt: ts,
-  };
-
-  const batch = writeBatch(db);
-  batch.set(doc(db, 'reactions', reactionId), reactionDoc);
-  batch.set(doc(db, 'projects', project.id), updatedProject);
 
   try {
-    await batch.commit();
+    await runTransaction(db, async (transaction) => {
+      const [reactionSnap, projectSnap] = await Promise.all([
+        transaction.get(reactionRef),
+        transaction.get(projectRef),
+      ]);
+      if (!projectSnap.exists()) return;
+
+      const freshProject = projectSnap.data() as Project;
+      const freshReaction = reactionSnap.exists()
+        ? (reactionSnap.data() as Reaction)
+        : undefined;
+
+      const ts = nowIso();
+      const nextActive = freshReaction ? !freshReaction.active : true;
+      const delta = nextActive ? 1 : -1;
+
+      const currentFieldCount = freshProject[countField] || 0;
+      const nextFieldCount = Math.max(0, currentFieldCount + delta);
+      const nextTotalReactions = Math.max(0, (freshProject.totalReactions || 0) + delta);
+
+      if (freshReaction) {
+        transaction.update(reactionRef, {
+          active: nextActive,
+          updatedAt: ts,
+        });
+      } else {
+        const reactionDoc: Reaction = {
+          id: reactionId,
+          eventId: CURRENT_EVENT_ID,
+          participantId: participant.id,
+          participantName: participant.name,
+          projectId: freshProject.id,
+          projectName: freshProject.name,
+          reactionType,
+          active: nextActive,
+          createdAt: ts,
+          updatedAt: ts,
+        };
+        transaction.set(reactionRef, reactionDoc);
+      }
+
+      transaction.update(projectRef, {
+        [countField]: nextFieldCount,
+        totalReactions: nextTotalReactions,
+        updatedAt: ts,
+      });
+    });
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, `reactions/${reactionId}`);
   }
@@ -1031,20 +1030,17 @@ export async function updateParticipantDetailsAdmin(
   const cleanProjName = clampStr(newProjectName, 120);
 
   const batch = writeBatch(db);
-  const updatedPart: Participant = {
-    ...participant,
+  batch.update(doc(db, 'participants', participant.id), {
     name: cleanName,
     normalizedName: cleanName.toLowerCase().trim(),
     projectName: participant.role === 'entrepreneur' ? cleanProjName : '',
     updatedAt: ts,
-  };
-  batch.set(doc(db, 'participants', participant.id), updatedPart);
+  });
 
   if (participant.role === 'entrepreneur' && participant.projectId) {
     const existingProj = projects.find((p) => p.id === participant.projectId);
     if (existingProj && cleanProjName) {
-      batch.set(doc(db, 'projects', existingProj.id), {
-        ...existingProj,
+      batch.update(doc(db, 'projects', existingProj.id), {
         name: cleanProjName,
         entrepreneurName: cleanName,
         updatedAt: ts,
@@ -1054,8 +1050,7 @@ export async function updateParticipantDetailsAdmin(
 
   const existingBudget = budgets.find((b) => b.investorId === participant.id);
   if (existingBudget) {
-    batch.set(doc(db, 'budgets', existingBudget.id), {
-      ...existingBudget,
+    batch.update(doc(db, 'budgets', existingBudget.id), {
       investorName: cleanName,
       updatedAt: ts,
     });
@@ -1104,21 +1099,15 @@ export async function updateEntrepreneurProject(params: {
   const ts = nowIso();
   const batch = writeBatch(db);
 
-  const updatedProject: Project = {
-    ...project,
+  batch.update(doc(db, 'projects', project.id), {
     name: cleanName,
     category: cleanCategory,
     updatedAt: ts,
-  };
-
-  const updatedParticipant: Participant = {
-    ...participant,
+  });
+  batch.update(doc(db, 'participants', participant.id), {
     projectName: cleanName,
     updatedAt: ts,
-  };
-
-  batch.set(doc(db, 'projects', project.id), updatedProject);
-  batch.set(doc(db, 'participants', participant.id), updatedParticipant);
+  });
 
   try {
     await batch.commit();

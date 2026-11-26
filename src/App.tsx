@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { collection, doc, onSnapshot, query, where } from 'firebase/firestore';
 import { db, ensureAnonymousAuth, handleFirestoreError, OperationType } from './firebase';
 import {
@@ -19,6 +19,7 @@ import {
   Reaction,
 } from './types';
 import { ensureDefaultEvent, verifyActiveSessionOnBoot } from './services/pitchService';
+import { enrichProjectsWithConfirmedInvestments } from './services/projectStats';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Navbar } from './components/Navbar';
 import { RegistrationModule } from './components/RegistrationModule';
@@ -168,6 +169,10 @@ function PitchInvestorsApp() {
   const myInvestments = investments.filter(
     (inv) => inv.investorId === currentParticipantId
   );
+  const liveProjects = useMemo(
+    () => enrichProjectsWithConfirmedInvestments(projects, investments),
+    [projects, investments]
+  );
 
   // Requisito 4: Dinámica durante las presentaciones
   // Cuando el evento pasa a 'presenting', todos los participantes registrados
@@ -232,7 +237,7 @@ function PitchInvestorsApp() {
           <RegistrationModule
             eventConfig={eventConfig}
             participants={participants}
-            projects={projects}
+            projects={liveProjects}
             currentParticipant={currentParticipant}
             currentBudget={currentBudget}
             onSelectParticipant={handleSelectParticipant}
@@ -243,7 +248,7 @@ function PitchInvestorsApp() {
         {activeTab === 'proyectos' && (
           <ProjectsModule
             eventConfig={eventConfig}
-            projects={projects}
+            projects={liveProjects}
             allInvestments={investments}
             currentParticipant={currentParticipant}
             currentBudget={currentBudget}
@@ -255,7 +260,7 @@ function PitchInvestorsApp() {
         {activeTab === 'presentaciones' && (
           <PresentationModule
             eventConfig={eventConfig}
-            projects={projects}
+            projects={liveProjects}
             investments={investments}
             reactions={reactions}
             currentParticipant={currentParticipant}
@@ -271,7 +276,7 @@ function PitchInvestorsApp() {
         {activeTab === 'resultados' && (
           <ResultsModule
             eventConfig={eventConfig}
-            projects={projects}
+            projects={liveProjects}
             investments={investments}
             currentParticipant={currentParticipant}
             currentBudget={currentBudget}
@@ -282,7 +287,7 @@ function PitchInvestorsApp() {
           <AdminPanel
             eventConfig={eventConfig}
             participants={participants}
-            projects={projects}
+            projects={liveProjects}
             budgets={budgets}
             investments={investments}
             reactions={reactions}
